@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { BusinessProvider, useBusiness } from "@/lib/context/business";
 
@@ -16,7 +17,8 @@ function Nav() {
   const { business, businesses, switchBusiness } = useBusiness();
   return (
     <div className="sticky top-0 bg-white border-b z-10">
-      <div className="max-w-lg mx-auto px-4 py-3 flex justify-between items-center">
+      <div className="max-w-lg mx-auto px-4 py-3 flex justify-between items-center gap-3">
+        <Image src="/logo.png" alt="Nishchint" width={120} height={32} className="h-7 w-auto" priority />
         {businesses.length > 1 ? (
           <select
             className="font-bold text-teal bg-transparent border-none focus:outline-none"
@@ -51,7 +53,7 @@ function Nav() {
 function Loading() {
   return (
     <div className="max-w-lg mx-auto px-6 pt-24 text-center text-[#5C7A6C]">
-      Loading your business…
+      Loading your business...
     </div>
   );
 }
@@ -59,7 +61,7 @@ function Loading() {
 function Gate({ children }: { children: React.ReactNode }) {
   const { business, loading } = useBusiness();
   if (loading) return <Loading />;
-  if (!business) return <Loading />; // context redirects to onboarding
+  if (!business) return <Loading />;
   return <>{children}</>;
 }
 
