@@ -7,7 +7,17 @@ interface Fee {
   amount: number;
   due_date: string;
   status: "pending" | "paid" | "overdue";
+  penalty_per_day: number;
   members: { name: string; guardian_name: string | null };
+}
+
+function daysLate(dueDate: string): number {
+  const due = new Date(dueDate);
+  const today = new Date();
+  due.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  const diff = Math.floor((today.getTime() - due.getTime()) / 86400000);
+  return diff > 0 ? diff : 0;
 }
 
 export default function FeesPage() {
@@ -45,23 +55,33 @@ export default function FeesPage() {
       </div>
 
       <div className="space-y-2">
-        {fees.map((f) => (
-          <div key={f.id} className="bg-white rounded-xl px-4 py-3 flex justify-between items-center">
-            <div>
-              <p className="font-medium">{f.members?.name}</p>
-              <p className="text-xs text-[#5C7A6C]">
-                ₹{f.amount} · due {f.due_date} ·{" "}
-                <span className={f.status === "overdue" ? "text-coral" : ""}>{f.status}</span>
-              </p>
+        {fees.map((f) => {
+          const late = f.status === "overdue" ? daysLate(f.due_date) : 0;
+          const penalty = late * (f.penalty_per_day ?? 0);
+          const total = f.amount + penalty;
+          return (
+            <div key={f.id} className="bg-white rounded-xl px-4 py-3 flex justify-between items-center">
+              <div>
+                <p className="font-medium">{f.members?.name}</p>
+                <p className="text-xs text-[#5C7A6C]">
+                  Rs.{f.amount} - due {f.due_date} -{" "}
+                  <span className={f.status === "overdue" ? "text-coral" : ""}>{f.status}</span>
+                </p>
+                {penalty > 0 && (
+                  <p className="text-xs text-coral">
+                    {late} day{late === 1 ? "" : "s"} late - penalty Rs.{penalty} - total due Rs.{total}
+                  </p>
+                )}
+              </div>
+              {f.status !== "paid" && (
+                <button onClick={() => markPaid(f.id)} className="text-sm font-medium text-teal underline whitespace-nowrap">
+                  Mark paid
+                </button>
+              )}
             </div>
-            {f.status !== "paid" && (
-              <button onClick={() => markPaid(f.id)} className="text-sm font-medium text-teal underline">
-                Mark paid
-              </button>
-            )}
-          </div>
-        ))}
-        {fees.length === 0 && <p className="text-sm text-[#5C7A6C]">No fees yet — these are generated automatically once the daily job runs.</p>}
+          );
+        })}
+        {fees.length === 0 && <p className="text-sm text-[#5C7A6C]">No fees yet - these are generated automatically once the daily job runs.</p>}
       </div>
     </main>
   );

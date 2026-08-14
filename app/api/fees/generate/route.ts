@@ -3,16 +3,15 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { sendWhatsAppMessage, templates } from "@/lib/messaging";
 import { createPaymentLink } from "@/lib/payments";
 
-// Call this once a day from a scheduled job (Vercel Cron, or any cron
-// service hitting this URL with the CRON_SECRET header). It does two jobs:
-//   1. Creates new fee rows for members whose cycle has renewed
+// Call this once a day from a scheduled job. It does two jobs:
+//   1. Creates new fee rows for members whose cycle has renewed, due on
+//      the batch's fixed due_day_of_month
 //   2. Sends WhatsApp reminders for fees due in 2 days, and flags overdue ones
 export async function POST(req: NextRequest) {
   const secret = req.headers.get("x-cron-secret");
   if (secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
-
   const supabase = createAdminClient();
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
@@ -20,19 +19,22 @@ export async function POST(req: NextRequest) {
   // ── 1. Generate fee rows for members without a fee this cycle ──
   const { data: members } = await supabase
     .from("members")
-    .select("id, business_id, batch_id, guardian_phone, batches(fee_amount, fee_cycle, due_offset_days)")
+    .select("id, business_id, batch_id, guardian_phone, batches(fee_amount, fee_cycle, due_day_of_month, penalty_per_day)")
     .eq("status", "active");
 
   let created = 0;
   for (const m of members ?? []) {
     const batch = (m as any).batches;
     if (!batch) continue;
+    const cycleStart = todayStr;
 
-    const cycleStart = todayStr; // simple model: cycle starts the day it's generated
-    const due = new Date(today);
-    due.setDate(due.getDate() + (batch.due_offset_days ?? 5));
+    // due date = this month's fixed due day; if that day already passed, use next month
+    const dueDay = batch.due_day_of_month ?? 5;
+    let due = new Date(today.getFullYear(), today.getMonth(), dueDay);
+    if (due < today) {
+      due = new Date(today.getFullYear(), today.getMonth() + 1, dueDay);
+    }
 
-    // skip if a fee already exists for this member starting this cycle
     const { data: existing } = await supabase
       .from("fees")
       .select("id")
@@ -50,6 +52,7 @@ export async function POST(req: NextRequest) {
         due_date: due.toISOString().slice(0, 10),
         amount: batch.fee_amount,
         status: "pending",
+        penalty_per_day: batch.penalty_per_day ?? 0,
       })
       .select()
       .single();
@@ -67,7 +70,6 @@ export async function POST(req: NextRequest) {
   const reminderDate = new Date(today);
   reminderDate.setDate(reminderDate.getDate() + 2);
   const reminderDateStr = reminderDate.toISOString().slice(0, 10);
-
   const { data: dueSoon } = await supabase
     .from("fees")
     .select("*, members(name, guardian_phone)")
@@ -96,4 +98,3 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ feesCreated: created, remindersSent });
 }
-

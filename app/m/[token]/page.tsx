@@ -1,6 +1,15 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import Image from "next/image";
 
+function daysLate(dueDate: string): number {
+  const due = new Date(dueDate);
+  const today = new Date();
+  due.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  const diff = Math.floor((today.getTime() - due.getTime()) / 86400000);
+  return diff > 0 ? diff : 0;
+}
+
 export default async function MemberPublicPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const admin = createAdminClient();
@@ -32,7 +41,7 @@ export default async function MemberPublicPage({ params }: { params: Promise<{ t
 
   const { data: fees } = await admin
     .from("fees")
-    .select("id, due_date, amount, status")
+    .select("id, due_date, amount, status, penalty_per_day")
     .eq("member_id", member.id)
     .order("due_date", { ascending: false })
     .limit(12);
@@ -78,33 +87,42 @@ export default async function MemberPublicPage({ params }: { params: Promise<{ t
           <p className="text-sm text-[#5C7A6C]">No pending fees. All caught up.</p>
         ) : (
           <div className="space-y-3">
-            {pendingFees.map((f) => (
-              <div key={f.id} className="border-b last:border-0 pb-3 last:pb-0">
-                <div className="flex justify-between items-center mb-2">
-                  <div>
-                    <p className="text-sm font-medium">Rs. {f.amount}</p>
-                    <p className="text-xs text-[#5C7A6C]">Due {new Date(f.due_date).toLocaleDateString()}</p>
+            {pendingFees.map((f) => {
+              const late = f.status === "overdue" ? daysLate(f.due_date) : 0;
+              const penalty = late * (f.penalty_per_day ?? 0);
+              const total = f.amount + penalty;
+              return (
+                <div key={f.id} className="border-b last:border-0 pb-3 last:pb-0">
+                  <div className="flex justify-between items-center mb-2">
+                    <div>
+                      <p className="text-sm font-medium">Rs. {f.amount}</p>
+                      <p className="text-xs text-[#5C7A6C]">Due {new Date(f.due_date).toLocaleDateString()}</p>
+                      {penalty > 0 && (
+                        <p className="text-xs text-coral">
+                          {late} day{late === 1 ? "" : "s"} late - penalty Rs.{penalty} - total due Rs.{total}
+                        </p>
+                      )}
+                    </div>
+                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${f.status === "overdue" ? "bg-coral/10 text-coral" : "bg-[#EEF4EC] text-teal"}`}>
+                      {f.status}
+                    </span>
                   </div>
-                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${f.status === "overdue" ? "bg-coral/10 text-coral" : "bg-[#EEF4EC] text-teal"}`}>
-                    {f.status}
-                  </span>
+                  {upiId ? (
+                    <a
+                      href={upiLink(total)}
+                      className="block text-center bg-teal text-white rounded-lg py-2 text-sm font-medium"
+                    >
+                      Pay Now {penalty > 0 ? `(Rs.${total})` : ""}
+                    </a>
+                  ) : (
+                    <p className="text-xs text-[#5C7A6C]">Contact {businessName} to pay this fee.</p>
+                  )}
                 </div>
-                {upiId ? (
-                  <a
-                    href={upiLink(f.amount)}
-                    className="block text-center bg-teal text-white rounded-lg py-2 text-sm font-medium"
-                  >
-                    Pay Now
-                  </a>
-                ) : (
-                  <p className="text-xs text-[#5C7A6C]">Contact {businessName} to pay this fee.</p>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
     </main>
   );
 }
-
