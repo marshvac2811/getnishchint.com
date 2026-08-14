@@ -49,7 +49,7 @@ export default async function MemberPublicPage({ params }: { params: Promise<{ t
       pn: businessName || "Fee payment",
       am: String(amount),
       cu: "INR",
-      tn: `Fee for ${member.name}`,
+      tn: `Fee for ${member!.name}`,
     });
     return `upi://pay?${params.toString()}`;
   }
@@ -107,3 +107,4 @@ export default async function MemberPublicPage({ params }: { params: Promise<{ t
     </main>
   );
 }
+
