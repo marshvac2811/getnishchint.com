@@ -7,7 +7,7 @@ export default async function MemberPublicPage({ params }: { params: Promise<{ t
 
   const { data: member } = await admin
     .from("members")
-    .select("id, name, guardian_name, business_id, businesses(name)")
+    .select("id, name, guardian_name, business_id, businesses(name, upi_id)")
     .eq("access_token", token)
     .single();
 
@@ -19,7 +19,9 @@ export default async function MemberPublicPage({ params }: { params: Promise<{ t
     );
   }
 
-  const businessName = (member as any).businesses?.name ?? "";
+  const businessInfo = (member as any).businesses;
+  const businessName = businessInfo?.name ?? "";
+  const upiId = businessInfo?.upi_id ?? "";
 
   const { data: attendance } = await admin
     .from("attendance")
@@ -40,6 +42,17 @@ export default async function MemberPublicPage({ params }: { params: Promise<{ t
   const attendancePct = totalSessions > 0 ? Math.round((presentCount / totalSessions) * 100) : null;
 
   const pendingFees = (fees ?? []).filter((f) => f.status !== "paid");
+
+  function upiLink(amount: number) {
+    const params = new URLSearchParams({
+      pa: upiId,
+      pn: businessName || "Fee payment",
+      am: String(amount),
+      cu: "INR",
+      tn: `Fee for ${member.name}`,
+    });
+    return `upi://pay?${params.toString()}`;
+  }
 
   return (
     <main className="max-w-lg mx-auto px-6 pt-10 pb-16">
@@ -64,16 +77,28 @@ export default async function MemberPublicPage({ params }: { params: Promise<{ t
         {pendingFees.length === 0 ? (
           <p className="text-sm text-[#5C7A6C]">No pending fees. All caught up.</p>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {pendingFees.map((f) => (
-              <div key={f.id} className="flex justify-between items-center border-b last:border-0 pb-2 last:pb-0">
-                <div>
-                  <p className="text-sm font-medium">Rs. {f.amount}</p>
-                  <p className="text-xs text-[#5C7A6C]">Due {new Date(f.due_date).toLocaleDateString()}</p>
+              <div key={f.id} className="border-b last:border-0 pb-3 last:pb-0">
+                <div className="flex justify-between items-center mb-2">
+                  <div>
+                    <p className="text-sm font-medium">Rs. {f.amount}</p>
+                    <p className="text-xs text-[#5C7A6C]">Due {new Date(f.due_date).toLocaleDateString()}</p>
+                  </div>
+                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${f.status === "overdue" ? "bg-coral/10 text-coral" : "bg-[#EEF4EC] text-teal"}`}>
+                    {f.status}
+                  </span>
                 </div>
-                <span className={`text-xs font-medium px-2 py-1 rounded-full ${f.status === "overdue" ? "bg-coral/10 text-coral" : "bg-[#EEF4EC] text-teal"}`}>
-                  {f.status}
-                </span>
+                {upiId ? (
+                  <a
+                    href={upiLink(f.amount)}
+                    className="block text-center bg-teal text-white rounded-lg py-2 text-sm font-medium"
+                  >
+                    Pay Now
+                  </a>
+                ) : (
+                  <p className="text-xs text-[#5C7A6C]">Contact {businessName} to pay this fee.</p>
+                )}
               </div>
             ))}
           </div>
