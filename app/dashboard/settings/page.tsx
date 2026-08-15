@@ -7,6 +7,9 @@ export default function SettingsPage() {
   const [upiId, setUpiId] = useState("");
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [feedback, setFeedback] = useState("");
+  const [feedbackSent, setFeedbackSent] = useState(false);
+  const [sendingFeedback, setSendingFeedback] = useState(false);
 
   useEffect(() => {
     if (!business) return;
@@ -30,6 +33,20 @@ export default function SettingsPage() {
     setTimeout(() => setSaved(false), 2000);
   }
 
+  async function sendFeedback() {
+    if (!feedback.trim() || !business) return;
+    setSendingFeedback(true);
+    await fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ business_id: business.id, message: feedback }),
+    });
+    setSendingFeedback(false);
+    setFeedback("");
+    setFeedbackSent(true);
+    setTimeout(() => setFeedbackSent(false), 3000);
+  }
+
   if (loading) {
     return (
       <main className="max-w-lg mx-auto px-6 pt-6 pb-16">
@@ -42,7 +59,7 @@ export default function SettingsPage() {
   return (
     <main className="max-w-lg mx-auto px-6 pt-6 pb-16">
       <h1 className="text-2xl font-bold mb-4">Settings</h1>
-      <div className="bg-white rounded-xl p-4">
+      <div className="bg-white rounded-xl p-4 mb-6">
         <p className="text-sm font-semibold mb-1">UPI ID for fee payments</p>
         <p className="text-xs text-[#5C7A6C] mb-3">
           When guardians open their fee link, they'll see a Pay Now button that sends payment directly to this UPI ID. Nothing passes through us.
@@ -55,6 +72,22 @@ export default function SettingsPage() {
         />
         <button onClick={save} className="w-full bg-teal text-white rounded-lg py-2 font-medium">
           {saved ? "Saved!" : "Save"}
+        </button>
+      </div>
+
+      <div className="bg-white rounded-xl p-4">
+        <p className="text-sm font-semibold mb-1">Send us feedback</p>
+        <p className="text-xs text-[#5C7A6C] mb-3">
+          Tell us what's working, what's confusing, or what you wish this app could do.
+        </p>
+        <textarea
+          className="w-full rounded-lg border px-3 py-2 mb-3 h-24"
+          placeholder="Your feedback..."
+          value={feedback}
+          onChange={(e) => setFeedback(e.target.value)}
+        />
+        <button onClick={sendFeedback} disabled={sendingFeedback || !feedback.trim()} className="w-full bg-teal text-white rounded-lg py-2 font-medium disabled:opacity-60">
+          {feedbackSent ? "Thanks for the feedback!" : sendingFeedback ? "Sending..." : "Send feedback"}
         </button>
       </div>
     </main>

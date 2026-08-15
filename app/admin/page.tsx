@@ -12,6 +12,13 @@ interface Business {
   created_at: string;
 }
 
+interface Feedback {
+  id: string;
+  message: string;
+  created_at: string;
+  businesses: { name: string } | null;
+}
+
 export default function AdminPage() {
   const [businesses, setBusinesses] = useState<Business[] | null>(null);
   const [error, setError] = useState("");
@@ -23,6 +30,8 @@ export default function AdminPage() {
   const [newEmail, setNewEmail] = useState("");
   const [addError, setAddError] = useState("");
   const [adding, setAdding] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedback, setFeedback] = useState<Feedback[]>([]);
 
   function load() {
     fetch("/api/admin/businesses")
@@ -38,6 +47,17 @@ export default function AdminPage() {
   }
 
   useEffect(load, []);
+
+  function loadFeedback() {
+    fetch("/api/admin/feedback")
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data)) setFeedback(data); });
+  }
+
+  function toggleFeedback() {
+    if (!showFeedback) loadFeedback();
+    setShowFeedback(!showFeedback);
+  }
 
   async function addClient() {
     setAddError("");
@@ -103,12 +123,35 @@ export default function AdminPage() {
       <h1 className="text-2xl font-bold mb-1">Admin</h1>
       <p className="text-sm text-[#4B6459] mb-6">Every business on the platform - for your eyes only.</p>
 
-      <button
-        onClick={() => setShowAddForm(!showAddForm)}
-        className="w-full bg-teal text-white rounded-lg py-2.5 font-medium mb-4"
-      >
-        {showAddForm ? "Cancel" : "+ Add Client"}
-      </button>
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={() => setShowAddForm(!showAddForm)}
+          className="flex-1 bg-teal text-white rounded-lg py-2.5 font-medium"
+        >
+          {showAddForm ? "Cancel" : "+ Add Client"}
+        </button>
+        <button
+          onClick={toggleFeedback}
+          className="flex-1 bg-[#EEF4EC] text-teal rounded-lg py-2.5 font-medium"
+        >
+          {showFeedback ? "Hide Feedback" : "View Feedback"}
+        </button>
+      </div>
+
+      {showFeedback && (
+        <div className="bg-white rounded-xl p-4 mb-6">
+          <p className="text-sm font-semibold mb-3">Client feedback</p>
+          {feedback.length === 0 && <p className="text-sm text-[#5C7A6C]">No feedback yet.</p>}
+          <div className="space-y-3">
+            {feedback.map((f) => (
+              <div key={f.id} className="border-b last:border-0 pb-3 last:pb-0">
+                <p className="text-sm">{f.message}</p>
+                <p className="text-xs text-[#5C7A6C] mt-1">{f.businesses?.name ?? "Unknown"} - {new Date(f.created_at).toLocaleString()}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {showAddForm && (
         <div className="bg-white rounded-xl p-4 mb-6">
