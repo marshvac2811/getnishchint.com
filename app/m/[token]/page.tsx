@@ -10,13 +10,26 @@ function daysLate(dueDate: string): number {
   return diff > 0 ? diff : 0;
 }
 
+
+function tenureLabel(dateStr: string): string {
+  const start = new Date(dateStr);
+  const now = new Date();
+  const days = Math.floor((now.getTime() - start.getTime()) / 86400000);
+  if (days < 1) return "Today";
+  if (days < 30) return `${days} day${days === 1 ? "" : "s"}`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months} month${months === 1 ? "" : "s"}`;
+  const years = Math.floor(months / 12);
+  return `${years} year${years === 1 ? "" : "s"}`;
+}
+
 export default async function MemberPublicPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const admin = createAdminClient();
 
   const { data: member } = await admin
     .from("members")
-    .select("id, name, guardian_name, business_id, businesses(name, upi_id)")
+    .select("id, name, guardian_name, join_date, business_id, businesses(name, upi_id)")
     .eq("access_token", token)
     .single();
 
@@ -67,7 +80,10 @@ export default async function MemberPublicPage({ params }: { params: Promise<{ t
     <main className="max-w-lg mx-auto px-6 pt-10 pb-16">
       <Image src="/logo.png" alt="Nishchint" width={140} height={40} className="h-8 w-auto mb-6" priority />
       <p className="text-sm text-[#5C7A6C] mb-1">{businessName}</p>
-      <h1 className="text-2xl font-bold mb-6">{member.name}</h1>
+      <h1 className="text-2xl font-bold mb-1">{member.name}</h1>
+      {member.join_date && (
+        <p className="text-sm text-[#5C7A6C] mb-6">Member for {tenureLabel(member.join_date)}</p>
+      )}
 
       <div className="bg-white rounded-xl p-4 mb-4">
         <p className="text-sm font-semibold mb-2">Attendance</p>
