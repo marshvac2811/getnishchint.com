@@ -1,8 +1,11 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 export default function TrialSignupPage() {
+  const router = useRouter();
+  const [checkingSession, setCheckingSession] = useState(true);
   const [name, setName] = useState("");
   const [vertical, setVertical] = useState("play_school");
   const [phone, setPhone] = useState("");
@@ -10,6 +13,19 @@ export default function TrialSignupPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/businesses")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          router.push("/dashboard");
+        } else {
+          setCheckingSession(false);
+        }
+      })
+      .catch(() => setCheckingSession(false));
+  }, [router]);
 
   async function submit() {
     setError("");
@@ -26,10 +42,22 @@ export default function TrialSignupPage() {
     const data = await res.json();
     setSubmitting(false);
     if (!res.ok) {
-      setError(data.error ?? "Something went wrong.");
+      if (data.error === "already_has_business") {
+        setError("This email already has an account. Please sign in instead.");
+      } else {
+        setError(data.error ?? "Something went wrong.");
+      }
       return;
     }
     setDone(true);
+  }
+
+  if (checkingSession) {
+    return (
+      <main className="max-w-md mx-auto pt-24 px-6 text-center">
+        <p className="text-sm text-[#5C7A6C]">Loading...</p>
+      </main>
+    );
   }
 
   if (done) {
@@ -65,6 +93,9 @@ export default function TrialSignupPage() {
         <button onClick={submit} disabled={submitting} className="w-full bg-teal text-white rounded-lg py-2.5 font-medium disabled:opacity-60">
           {submitting ? "Starting..." : "Start free trial"}
         </button>
+        <p className="text-xs text-center text-[#5C7A6C] mt-3">
+          Already have an account? <a href="/login" className="text-teal underline">Sign in</a>
+        </p>
       </div>
     </main>
   );

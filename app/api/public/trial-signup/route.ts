@@ -28,6 +28,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: inviteError?.message ?? "could_not_create_or_find_user" }, { status: 400 });
   }
 
+  // If this owner already has a business, don't create a duplicate -
+  // just tell the frontend they should log in instead.
+  const { data: existingBusiness } = await admin
+    .from("businesses")
+    .select("id")
+    .eq("owner_user_id", ownerId)
+    .maybeSingle();
+
+  if (existingBusiness) {
+    return NextResponse.json({ error: "already_has_business", existing: true }, { status: 409 });
+  }
+
   const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
   const { data: business, error: bizError } = await admin
