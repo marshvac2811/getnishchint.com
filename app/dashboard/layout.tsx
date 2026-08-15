@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { BusinessProvider, useBusiness } from "@/lib/context/business";
+import OnboardingTour from "@/components/OnboardingTour";
 
 const NAV = [
   { href: "/dashboard", label: "Home" },
@@ -64,7 +65,12 @@ function Gate({ children }: { children: React.ReactNode }) {
   const { business, loading } = useBusiness();
   if (loading) return <Loading />;
   if (!business) return <Loading />;
-  return <>{children}</>;
+  return (
+    <>
+      <OnboardingTour />
+      {children}
+    </>
+  );
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
