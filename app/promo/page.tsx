@@ -5,49 +5,11 @@ import { Sora } from "next/font/google";
 const sora = Sora({ subsets: ["latin"], weight: ["600", "700", "800"] });
 
 const VERTICALS = [
-  { label: "Play Schools", icon: "playschool" },
-  { label: "Gyms", icon: "gym" },
-  { label: "Dance & Yoga", icon: "dance" },
-  { label: "Tuition & Coaching", icon: "tuition" },
-] as const;
-
-function VerticalIcon({ type }: { type: string }) {
-  const stroke = "#F7F6F1";
-  if (type === "playschool") {
-    return (
-      <svg viewBox="0 0 48 48" fill="none" className="w-7 h-7">
-        <circle cx="24" cy="14" r="6" stroke={stroke} strokeWidth="2.5" />
-        <path d="M10 40c0-8 6-13 14-13s14 5 14 13" stroke={stroke} strokeWidth="2.5" strokeLinecap="round" />
-        <path d="M6 30l4-4M42 30l-4-4" stroke={stroke} strokeWidth="2.5" strokeLinecap="round" />
-      </svg>
-    );
-  }
-  if (type === "gym") {
-    return (
-      <svg viewBox="0 0 48 48" fill="none" className="w-7 h-7">
-        <rect x="4" y="19" width="6" height="10" rx="1.5" stroke={stroke} strokeWidth="2.5" />
-        <rect x="38" y="19" width="6" height="10" rx="1.5" stroke={stroke} strokeWidth="2.5" />
-        <rect x="10" y="15" width="5" height="18" rx="1.5" stroke={stroke} strokeWidth="2.5" />
-        <rect x="33" y="15" width="5" height="18" rx="1.5" stroke={stroke} strokeWidth="2.5" />
-        <path d="M15 24h18" stroke={stroke} strokeWidth="2.5" strokeLinecap="round" />
-      </svg>
-    );
-  }
-  if (type === "dance") {
-    return (
-      <svg viewBox="0 0 48 48" fill="none" className="w-7 h-7">
-        <circle cx="24" cy="10" r="4" stroke={stroke} strokeWidth="2.5" />
-        <path d="M24 14v14M24 28l-9 12M24 28l9 12M24 20l-10-4M24 20l10-4" stroke={stroke} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    );
-  }
-  return (
-    <svg viewBox="0 0 48 48" fill="none" className="w-7 h-7">
-      <path d="M8 14c6-3 12-3 16 0v22c-4-3-10-3-16 0V14z" stroke={stroke} strokeWidth="2.5" strokeLinejoin="round" />
-      <path d="M40 14c-6-3-12-3-16 0v22c4-3 10-3 16 0V14z" stroke={stroke} strokeWidth="2.5" strokeLinejoin="round" />
-    </svg>
-  );
-}
+  { label: "Play Schools", src: "/promo/promo-playschool.jpg" },
+  { label: "Gyms", src: "/promo/promo-gym.jpg" },
+  { label: "Dance Studios", src: "/promo/promo-dance.jpg" },
+  { label: "Yoga & Fitness", src: "/promo/promo-yoga.jpg" },
+];
 
 function CheckIcon() {
   return (
@@ -84,8 +46,8 @@ export default function PromoPage() {
         <div className="flex justify-center gap-4 flex-wrap max-w-sm mx-auto">
           {VERTICALS.map((v) => (
             <div key={v.label} className="flex flex-col items-center gap-2 w-20">
-              <div className="w-14 h-14 rounded-2xl bg-[#1F5C4F] border border-[#2E7A69] flex items-center justify-center">
-                <VerticalIcon type={v.icon} />
+              <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#7FBFAE]">
+                <Image src={v.src} alt={v.label} width={64} height={64} className="w-full h-full object-cover" />
               </div>
               <p className="text-[#C9E4DC] text-[11px] font-medium leading-tight">{v.label}</p>
             </div>
@@ -113,20 +75,15 @@ export default function PromoPage() {
         {/* Pricing */}
         <p className="text-[#5C7A6C] text-xs font-semibold tracking-widest uppercase text-center mb-4">Simple Pricing</p>
 
-        <div className="grid grid-cols-2 gap-3 mb-3">
-          <div className="bg-white rounded-2xl p-4 border border-[#E4E9E6]">
-            <p className="text-xs font-semibold text-[#5C7A6C] mb-2">Pay as you grow</p>
-            <p className={`${sora.className} text-2xl font-extrabold text-[#1F5C4F]`}>
-              &#8377;20<span className="text-sm font-semibold text-[#5C7A6C]">/member</span>
+        <div className="bg-white rounded-2xl p-6 border border-[#E4E9E6] text-center mb-3">
+          <p className={`${sora.className} text-4xl font-extrabold text-[#1F5C4F] mb-1`}>
+            &#8377;2,000<span className="text-base font-semibold text-[#5C7A6C]">/month</span>
+          </p>
+          <p className="text-sm text-[#5C7A6C] mb-4">Flat. Unlimited members, unlimited batches.</p>
+          <div className="bg-[#F2A93B]/10 rounded-xl px-4 py-3 inline-block">
+            <p className="text-xs text-[#8A6412] font-medium">
+              Example: with 100 members, that&apos;s just &#8377;20 per child, per month
             </p>
-            <p className="text-xs text-[#5C7A6C] mt-1">per month, first 200 members</p>
-          </div>
-          <div className="bg-[#F2A93B]/10 rounded-2xl p-4 border border-[#F2A93B]/40">
-            <p className="text-xs font-semibold text-[#8A6412] mb-2">Unlimited</p>
-            <p className={`${sora.className} text-2xl font-extrabold text-[#8A6412]`}>
-              &#8377;2,000<span className="text-sm font-semibold">/mo</span>
-            </p>
-            <p className="text-xs text-[#8A6412] mt-1">flat, unlimited members</p>
           </div>
         </div>
 
