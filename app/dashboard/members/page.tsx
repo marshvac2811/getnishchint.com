@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useBusiness } from "@/lib/context/business";
 interface Batch { id: string; name: string; }
 interface Member { id: string; name: string; guardian_phone: string; access_token: string; }
@@ -71,12 +72,20 @@ export default function MembersPage() {
                 <p className="font-medium">{m.name}</p>
                 <p className="text-xs text-[#5C7A6C]">{m.guardian_phone}</p>
               </div>
-              <button
-                onClick={() => copyLink(m)}
-                className="text-xs font-medium px-3 py-1.5 rounded-lg bg-[#EEF4EC] text-teal whitespace-nowrap"
-              >
-                {copiedId === m.id ? "Copied!" : "Copy link"}
-              </button>
+              <div className="flex gap-2">
+                <Link
+                  href={`/dashboard/members/${m.id}/report`}
+                  className="text-xs font-medium px-3 py-1.5 rounded-lg bg-[#EEF4EC] text-teal whitespace-nowrap"
+                >
+                  Report
+                </Link>
+                <button
+                  onClick={() => copyLink(m)}
+                  className="text-xs font-medium px-3 py-1.5 rounded-lg bg-[#EEF4EC] text-teal whitespace-nowrap"
+                >
+                  {copiedId === m.id ? "Copied!" : "Copy link"}
+                </button>
+              </div>
             </div>
           </div>
         ))}

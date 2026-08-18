@@ -10,7 +10,6 @@ function daysLate(dueDate: string): number {
   return diff > 0 ? diff : 0;
 }
 
-
 function tenureLabel(dateStr: string): string {
   const start = new Date(dateStr);
   const now = new Date();
@@ -23,8 +22,17 @@ function tenureLabel(dateStr: string): string {
   return `${years} year${years === 1 ? "" : "s"}`;
 }
 
-export default async function MemberPublicPage({ params }: { params: Promise<{ token: string }> }) {
+const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+export default async function MemberPublicPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ token: string }>;
+  searchParams: Promise<{ month?: string }>;
+}) {
   const { token } = await params;
+  const { month: monthParam } = await searchParams;
   const admin = createAdminClient();
 
   const { data: member } = await admin
@@ -76,6 +84,44 @@ export default async function MemberPublicPage({ params }: { params: Promise<{ t
     return `upi://pay?${params.toString()}`;
   }
 
+  // --- Monthly calendar ---
+  const now = new Date();
+  const [calYear, calMonth] = monthParam
+    ? monthParam.split("-").map(Number)
+    : [now.getFullYear(), now.getMonth() + 1];
+
+  const monthStart = `${calYear}-${String(calMonth).padStart(2, "0")}-01`;
+  const lastDay = new Date(calYear, calMonth, 0).getDate();
+  const monthEnd = `${calYear}-${String(calMonth).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+
+  const { data: monthRecords } = await admin
+    .from("attendance")
+    .select("session_date, status")
+    .eq("member_id", member.id)
+    .gte("session_date", monthStart)
+    .lte("session_date", monthEnd);
+
+  const statusByDay: Record<number, string> = {};
+  (monthRecords ?? []).forEach((r) => {
+    const day = Number(r.session_date.split("-")[2]);
+    statusByDay[day] = r.status;
+  });
+
+  const firstWeekday = new Date(calYear, calMonth - 1, 1).getDay();
+  const monthPresentCount = (monthRecords ?? []).filter((r) => r.status === "present").length;
+  const monthAbsentCount = (monthRecords ?? []).filter((r) => r.status === "absent").length;
+
+  let prevMonth = calMonth - 1, prevYear = calYear;
+  if (prevMonth < 1) { prevMonth = 12; prevYear -= 1; }
+  let nextMonth = calMonth + 1, nextYear = calYear;
+  if (nextMonth > 12) { nextMonth = 1; nextYear += 1; }
+  const prevStr = `${prevYear}-${String(prevMonth).padStart(2, "0")}`;
+  const nextStr = `${nextYear}-${String(nextMonth).padStart(2, "0")}`;
+
+  const cells: (number | null)[] = [];
+  for (let i = 0; i < firstWeekday; i++) cells.push(null);
+  for (let d = 1; d <= lastDay; d++) cells.push(d);
+
   return (
     <main className="max-w-lg mx-auto px-6 pt-10 pb-16">
       <Image src="/logo.png" alt="Nishchint" width={140} height={40} className="h-8 w-auto mb-6" priority />
@@ -95,6 +141,36 @@ export default async function MemberPublicPage({ params }: { params: Promise<{ t
             <p className="text-xs text-[#5C7A6C]">Present {presentCount} of last {totalSessions} sessions</p>
           </>
         )}
+      </div>
+
+      {/* Monthly calendar */}
+      <div className="bg-white rounded-xl p-4 mb-4">
+        <div className="flex items-center justify-between mb-3">
+          <a href={`?month=${prevStr}`} className="text-sm px-2 py-1 rounded-lg bg-[#EEF4EC] text-teal font-medium">&larr;</a>
+          <p className="text-sm font-semibold">{MONTH_NAMES[calMonth - 1]} {calYear}</p>
+          <a href={`?month=${nextStr}`} className="text-sm px-2 py-1 rounded-lg bg-[#EEF4EC] text-teal font-medium">&rarr;</a>
+        </div>
+        <div className="grid grid-cols-7 gap-1 mb-2">
+          {["S","M","T","W","T","F","S"].map((d, i) => (
+            <p key={i} className="text-center text-[10px] text-[#5C7A6C] font-medium">{d}</p>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {cells.map((day, i) => {
+            if (day === null) return <div key={i} />;
+            const status = statusByDay[day];
+            const bg = status === "present" ? "bg-teal text-white" : status === "absent" ? "bg-coral/80 text-white" : "bg-[#F3F3F0] text-[#5C7A6C]";
+            return (
+              <div key={i} className={`aspect-square rounded-lg flex items-center justify-center text-xs font-medium ${bg}`}>
+                {day}
+              </div>
+            );
+          })}
+        </div>
+        <div className="flex gap-4 mt-3 text-xs text-[#5C7A6C]">
+          <span><span className="inline-block w-2.5 h-2.5 rounded-full bg-teal mr-1"></span>Present ({monthPresentCount})</span>
+          <span><span className="inline-block w-2.5 h-2.5 rounded-full bg-coral/80 mr-1"></span>Absent ({monthAbsentCount})</span>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl p-4">
