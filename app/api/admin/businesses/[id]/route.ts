@@ -9,7 +9,7 @@ async function isAdmin() {
   return allowed.includes(user.email.toLowerCase());
 }
 
-// Body: { status?: "active"|"suspended", plan_tier?: "basic"|"standard"|"premium" }
+// Body: { status?: "active"|"suspended", plan_tier?: "basic"|"standard"|"premium", zone?: string }
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!(await isAdmin())) {
@@ -19,7 +19,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const update: Record<string, string> = {};
   if (body.status) update.status = body.status;
   if (body.plan_tier) update.plan_tier = body.plan_tier;
-
+  if (body.zone !== undefined) update.zone = body.zone;
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("businesses")
@@ -27,7 +27,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     .eq("id", id)
     .select()
     .single();
-
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json(data);
 }
@@ -41,7 +40,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   }
   const admin = createAdminClient();
   const { error } = await admin.from("businesses").delete().eq("id", id);
-
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json({ success: true });
 }
