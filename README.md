@@ -1,87 +1,99 @@
-# BatchMate — Attendance, Fees & Parent Updates
+# BatchMate — Attendance, Fees, Staff & Parent Portal SaaS
 
-A working starter build of the MVP described in the product spec: onboarding, batches, members, attendance, automated fee reminders, and broadcast messaging — multi-tenant, with your business as the platform admin.
+BatchMate is a multi-tenant SaaS application tailored for play schools, coaching centers, dance academies, karate dojos, and tuition classes to manage onboarding, batches, member tracking, staff/instructor roles, attendance, automated WhatsApp fee reminders, digital PDF receipts, and visual reports.
 
-This is a **real, runnable Next.js project**, not a mockup. It was written in an environment without internet access, so it hasn't been `npm install`-ed or test-run yet — the steps below take you from this code to a live app.
+---
 
-## What's included
+## 🌟 Key Features
 
-- Full Next.js + TypeScript + Tailwind app (`app/`)
-- Supabase database schema with row-level security for tenant isolation (`supabase/schema.sql`)
-- API routes for every core flow (`app/api/`)
-- WhatsApp messaging + Razorpay payment link integration points (`lib/messaging.ts`, `lib/payments.ts`)
-- Owner-facing pages: onboarding, dashboard, attendance, fees, members, batches
+1. **Owner Dashboard & Visual Analytics (`/dashboard`)**
+   - 7-day attendance trend charts (daily present/absent counts).
+   - Real-time fee collection progress gauge (Billed vs Collected vs Pending vs Overdue).
+   - Batch capacity and student distribution metrics.
 
-## What's NOT included (by design — see the spec's "out of scope")
+2. **Daily Attendance Marker (`/dashboard/attendance`)**
+   - 1-click batch attendance marking with quick present/absent toggles.
 
-- Native mobile apps
-- Staff roles / parent login portal
-- Super-admin panel UI (the database support for it — the `status`/`plan_tier` columns and RLS bypass for `super_admin` — is there; the screen itself isn't built yet)
-- Automated tests
+3. **Fees, Invoicing & Digital Receipts (`/dashboard/fees`, `/receipt/[id]`)**
+   - Automatic fee generation with configurable billing cycles and overdue grace periods.
+   - 1-click WhatsApp payment reminders with dynamic UPI payment links.
+   - **Printable & PDF-ready Digital Fee Receipts** with verification stamps and itemized breakdown.
 
-## Setup steps
+4. **Parent & Student Portal (`/m/[token]`)**
+   - Mobile-optimized personal link for parents.
+   - Monthly attendance calendar with color-coded badges.
+   - Instant UPI payment button (GPay, PhonePe, Paytm) + Scannable QR Code.
+   - Downloadable fee receipts.
+   - 1-click WhatsApp support button to message the academy.
 
-### 1. Install dependencies
-```
+5. **Staff & Instructor Management (`/dashboard/staff`)**
+   - Invite teachers/coaches and assign them to specific batches.
+   - Role-based permissions (Instructors can mark attendance without seeing fee revenue).
+
+6. **Monthly Business Reports (`/dashboard/reports`)**
+   - Month-over-month attendance rate and collection analytics.
+   - **1-Click CSV Export** for Excel / Google Sheets accounting.
+
+7. **Admin & Distribution Engine (`/admin`, `/distributor`)**
+   - Platform super-admin console with tenant kill-switch and platform fee monitoring.
+   - Zone Head / Distributor portal for partner referral commissions.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Frontend:** Next.js 15+ (App Router), React 19, Tailwind CSS, TypeScript
+- **Database & Auth:** Supabase (PostgreSQL with Row Level Security & PGCrypto)
+- **Messaging:** WhatsApp Cloud API / Interakt / Gupshup integration points (`lib/messaging.ts`)
+- **Payments:** Direct UPI deep-linking + Razorpay payment links (`lib/payments.ts`)
+
+---
+
+## 🚀 Getting Started
+
+### 1. Install Dependencies
+```bash
 npm install
 ```
 
-### 2. Create a Supabase project
-1. Go to supabase.com → New Project
-2. Once created, go to Project Settings → API and copy:
-   - Project URL → `NEXT_PUBLIC_SUPABASE_URL`
-   - anon/public key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - service_role key → `SUPABASE_SERVICE_ROLE_KEY` (keep this secret — never expose it to the browser)
-3. Go to the SQL Editor and run the entire contents of `supabase/schema.sql`
-4. Enable Email OTP auth: Authentication → Providers → Email (should be on by default)
+### 2. Configure Supabase
+1. Create a project at [supabase.com](https://supabase.com).
+2. Go to **SQL Editor** in Supabase and run the entire contents of [`supabase/schema.sql`](supabase/schema.sql).
+3. *(Optional)* To test with realistic demo data, run [`supabase/seed.sql`](supabase/seed.sql).
+4. Copy `.env.example` to `.env.local` and add your API keys:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
+   SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOi...
+   CRON_SECRET=your_random_secret_string
+   ```
 
-Copy `.env.example` to `.env.local` and fill in the three Supabase values.
-
-### 3. WhatsApp provider (for automated reminders)
-Sign up with Interakt (interakt.shop) or Gupshup (gupshup.io) — both are built for WhatsApp Business API in India and don't require the full Meta approval process to get started.
-- Get your API key and base URL, add to `.env.local` as `WHATSAPP_PROVIDER_API_KEY` / `WHATSAPP_PROVIDER_BASE_URL`
-- Create two WhatsApp template messages in their dashboard matching the names used in `lib/messaging.ts`: `fee_reminder` and `broadcast_update`
-- Until this is configured, the app will run fine but reminders will just be logged to the console instead of sent — useful for testing the rest of the flow first
-
-### 4. Razorpay (for payment links in reminders)
-1. Sign up at razorpay.com, complete KYC (needed before live payments work — test mode works without it)
-2. Get your Key ID and Key Secret from Settings → API Keys
-3. Add to `.env.local` as `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET`
-
-### 5. Run locally
-```
+### 3. Run Locally
+```bash
 npm run dev
 ```
-Visit `http://localhost:3000`, sign in, and go through onboarding.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-### 6. Set up the daily reminder job
-The fee-generation + reminder logic lives at `POST /api/fees/generate`, protected by a `CRON_SECRET` header. This needs to run once a day.
-- Set `CRON_SECRET` in your env vars to any random string
-- Easiest option once deployed on Vercel: add a `vercel.json` with a Cron Job hitting this route daily, or use a free external cron service (e.g. cron-job.org) to POST to `https://yourdomain.com/api/fees/generate` with header `x-cron-secret: <your secret>` once every day
+---
 
-### 7. Deploy
-1. Push this code to a GitHub repo
-2. Import the repo into Vercel (vercel.com/new)
-3. Add all the same env vars from `.env.local` into Vercel's project settings
-4. Deploy
+## ⏰ Automated Cron Jobs
 
-### 8. Make yourself super-admin (platform control)
-After you've signed up once in the live app, run this in the Supabase SQL editor (replace the email):
-```sql
-update auth.users
-set raw_app_meta_data = raw_app_meta_data || '{"super_admin": true}'
-where email = 'youremail@example.com';
+Vercel Cron is configured in `vercel.json` for:
+- **Fee Generation & WhatsApp Reminders:** Runs daily at 03:30 UTC (`POST /api/fees/generate`)
+- **Trial Expiry Check:** Runs daily at 04:00 UTC (`POST /api/cron/trial-expiry`)
+
+For custom triggers or external schedulers (e.g. cron-job.org), send a `POST` request with the header:
+```http
+x-cron-secret: <CRON_SECRET>
 ```
-This lets your account read/manage every business's data for support purposes, per the RLS policies in the schema — without needing their login.
 
-## Testing the pilot end-to-end
+---
 
-1. Sign in, complete onboarding for one real business (e.g. your pilot play school)
-2. Add a batch and a few real members with real guardian phone numbers
-3. Mark attendance for a few days
-4. Trigger `/api/fees/generate` manually once (via curl or Postman with the `x-cron-secret` header) to confirm a fee reminder actually sends
-5. Once that works end-to-end, you've hit the MVP "Definition of Done" from the product spec
+## 🛡️ Super-Admin Privileges
 
-## If you hire a developer instead of building it yourself
-
-Hand them this whole folder plus `product-spec.md` from earlier — the schema, API routes, and acceptance criteria are already written, so their job is mainly: run `npm install`, wire up the accounts above, test the flows, and polish the UI.
+To grant your account platform super-admin rights:
+```sql
+UPDATE auth.users
+SET raw_app_meta_data = raw_app_meta_data || '{"super_admin": true}'
+WHERE email = 'you@example.com';
+```
